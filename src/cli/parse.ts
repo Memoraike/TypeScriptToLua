@@ -104,6 +104,11 @@ export const optionDeclarations: CommandLineOption[] = [
         description: "Measure performance of the tstl compiler.",
         type: "boolean",
     },
+    {
+        name: "kahluaImport",
+        description: "Disable replacing slashes by dots in imports",
+        type: "boolean"
+    }
 ];
 
 export function updateParsedConfigFile(parsedConfigFile: ts.ParsedCommandLine): ParsedCommandLine {
