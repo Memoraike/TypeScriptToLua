@@ -49,8 +49,8 @@ class ResolutionContext {
                 // Remove @NoResolution prefix if not building in library mode
                 if (!isBuildModeLibrary(this.program)) {
                     const path = required.requirePath.replace("@NoResolution:", "");
-                    replaceRequireInCode(file, required, path, this.options.extension);
-                    replaceRequireInSourceMap(file, required, path, this.options.extension);
+                    replaceRequireInCode(file, required, path, this.options);
+                    replaceRequireInSourceMap(file, required, path, this.options);
                 }
 
                 // Skip
@@ -88,8 +88,8 @@ class ResolutionContext {
         // Figure out resolved require path and dependency output path
         if (shouldRewriteRequires(dependencyPath, this.program)) {
             const resolvedRequire = getEmitPathRelativeToOutDir(dependencyPath, this.program);
-            replaceRequireInCode(file, required, resolvedRequire, this.options.extension);
-            replaceRequireInSourceMap(file, required, resolvedRequire, this.options.extension);
+            replaceRequireInCode(file, required, resolvedRequire, this.options);
+            replaceRequireInSourceMap(file, required, resolvedRequire, this.options);
         }
     }
 
@@ -116,9 +116,14 @@ class ResolutionContext {
     }
 
     private couldNotResolveImport(required: LuaRequire, file: ProcessedFile): void {
-        const fallbackRequire = fallbackResolve(required, getSourceDir(this.program), path.dirname(file.fileName));
-        replaceRequireInCode(file, required, fallbackRequire, this.options.extension);
-        replaceRequireInSourceMap(file, required, fallbackRequire, this.options.extension);
+        const fallbackRequire = fallbackResolve(
+            required,
+            getSourceDir(this.program),
+            path.dirname(file.fileName),
+            this.options
+        );
+        replaceRequireInCode(file, required, fallbackRequire, this.options);
+        replaceRequireInSourceMap(file, required, fallbackRequire, this.options);
 
         this.diagnostics.push(
             couldNotResolveRequire(required.requirePath, path.relative(getProjectRoot(this.program), file.fileName))
@@ -314,9 +319,9 @@ function replaceRequireInCode(
     file: ProcessedFile,
     originalRequire: LuaRequire,
     newRequire: string,
-    extension: string | undefined
+    options: CompilerOptions
 ): void {
-    const requirePath = requirePathForFile(newRequire, extension);
+    const requirePath = requirePathForFile(newRequire, options);
     file.code = file.code =
         file.code.substring(0, originalRequire.from) +
         `require("${requirePath}")` +
@@ -327,9 +332,9 @@ function replaceRequireInSourceMap(
     file: ProcessedFile,
     originalRequire: LuaRequire,
     newRequire: string,
-    extension?: string | undefined
+    options: CompilerOptions
 ): void {
-    const requirePath = requirePathForFile(newRequire, extension);
+    const requirePath = requirePathForFile(newRequire, options);
     if (file.sourceMapNode) {
         replaceInSourceMap(
             file.sourceMapNode,
@@ -340,14 +345,15 @@ function replaceRequireInSourceMap(
     }
 }
 
-function requirePathForFile(filePath: string, extension = ".lua"): string {
+function requirePathForFile(filePath: string, options: CompilerOptions): string {
+    let extension = options.extension ?? ".lua";
     if (!extension.startsWith(".")) {
         extension = `.${extension}`;
     }
     if (filePath.endsWith(extension)) {
-        return formatPathToLuaPath(filePath.substring(0, filePath.length - extension.length));
+        return formatPathToLuaPath(filePath.substring(0, filePath.length - extension.length), options);
     } else {
-        return formatPathToLuaPath(filePath);
+        return formatPathToLuaPath(filePath, options);
     }
 }
 
@@ -389,13 +395,19 @@ function hasSourceFileInProject(filePath: string, program: ts.Program) {
 }
 
 // Transform an import path to a lua require that is probably not correct, but can be used as fallback when regular resolution fails
-function fallbackResolve(required: LuaRequire, sourceRootDir: string, fileDir: string): string {
+function fallbackResolve(
+    required: LuaRequire,
+    sourceRootDir: string,
+    fileDir: string,
+    options: CompilerOptions
+): string {
     return formatPathToLuaPath(
         path
             .normalize(path.join(path.relative(sourceRootDir, fileDir), required.requirePath))
             .split(path.sep)
             .filter(s => s !== "." && s !== "..")
-            .join(path.sep)
+            .join(path.sep),
+        options
     );
 }
 

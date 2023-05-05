@@ -29,6 +29,7 @@ export interface TypeScriptToLuaOptions {
     luaBundle?: string;
     luaBundleEntry?: string;
     luaTarget?: LuaTarget;
+    kahluaImport?: boolean;
     luaLibImport?: LuaLibImportKind;
     luaPlugins?: LuaPluginImport[];
     noImplicitGlobalVariables?: boolean;
