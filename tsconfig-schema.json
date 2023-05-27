@@ -32,6 +32,10 @@
                     "type": "boolean",
                     "default": false
                 },
+                "kahluaImport": {
+                    "description": "Disable replacing slashes by dots in imports",
+                    "type": "boolean"
+                },
                 "luaBundle": {
                     "description": "The name of the lua file to bundle output lua to. Requires luaBundleEntry.",
                     "type": "string"
